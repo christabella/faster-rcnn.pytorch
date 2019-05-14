@@ -13,6 +13,7 @@ import sys
 import numpy as np
 import argparse
 import pprint
+import pandas as pd
 import pdb
 import time
 
@@ -295,6 +296,7 @@ if __name__ == '__main__':
     from tensorboardX import SummaryWriter
     logger = SummaryWriter("logs")
 
+  log_df = pd.DataFrame(columns=['epoch', 'loss', 'loss_rpn_cls', 'loss_rpn_box', 'loss_rcnn_cls', 'loss_rcnn_box'])
   best_epoch_loss = 1e99
   best_epoch = None  # The epoch at which we achieved the best epoch loss
   for epoch in range(args.start_epoch, args.max_epochs + 1):
@@ -362,14 +364,18 @@ if __name__ == '__main__':
         print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))
         print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+        epoch_frac = epoch + (step / iters_per_epoch)
+        info = {
+          'epoch': epoch_frac,
+          'loss': loss_temp,
+          'loss_rpn_cls': loss_rpn_cls,
+          'loss_rpn_box': loss_rpn_box,
+          'loss_rcnn_cls': loss_rcnn_cls,
+          'loss_rcnn_box': loss_rcnn_box
+        }
+        log_df = log_df.append(info, ignore_index=True)
+
         if args.use_tfboard:
-          info = {
-            'loss': loss_temp,
-            'loss_rpn_cls': loss_rpn_cls,
-            'loss_rpn_box': loss_rpn_box,
-            'loss_rcnn_cls': loss_rcnn_cls,
-            'loss_rcnn_box': loss_rcnn_box
-          }
           logger.add_scalars("logs_s_{}/losses".format(args.session), info, (epoch - 1) * iters_per_epoch + step)
 
         loss_temp = 0
@@ -404,3 +410,7 @@ if __name__ == '__main__':
   with open("results.txt", "a") as myfile:
     myfile.write(row_of_info)
     myfile.write('\n')
+
+  # Save losses
+  log_file = "logs/" + args.net + "/" + args.dataset + save_name
+  log_df.to_csv(log_file, index=False)
