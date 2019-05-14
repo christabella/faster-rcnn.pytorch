@@ -94,6 +94,12 @@ def parse_args():
                       help='learning rate decay ratio',
                       default=0.1, type=float)
 
+# weird experiment time
+# TRAIN.RPN_POSITIVE_OVERLAP
+  parser.add_argument('--rpn_positive_overlap', dest='rpn_positive_overlap',
+                      help='rpn_positive_overlap',
+                      default=0.7, type=float)
+
 # set training session
   parser.add_argument('--s', dest='session',
                       help='training session',
@@ -186,6 +192,9 @@ if __name__ == '__main__':
   print('Using config:')
   pprint.pprint(cfg)
   np.random.seed(cfg.RNG_SEED)
+
+  # Load configs for experimenting
+  cfg.TRAIN.RPN_POSITIVE_OVERLAP = args.rpn_positive_overlap
 
   #torch.backends.cudnn.benchmark = True
   if torch.cuda.is_available() and not args.cuda:
