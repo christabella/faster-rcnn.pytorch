@@ -299,12 +299,12 @@ if __name__ == '__main__':
   log_df = pd.DataFrame(columns=['epoch', 'loss', 'loss_rpn_cls', 'loss_rpn_box', 'loss_rcnn_cls', 'loss_rcnn_box'])
   best_epoch_loss = 1e99
   best_epoch = None  # The epoch at which we achieved the best epoch loss
+  epoch_start = time.time()
   for epoch in range(args.start_epoch, args.max_epochs + 1):
     epoch_loss = 0
     # setting to train mode
     fasterRCNN.train()
     loss_temp = 0
-    epoch_start = time.time()
     start = time.time()
 
     if epoch % (args.lr_decay_step + 1) == 0:
@@ -382,8 +382,6 @@ if __name__ == '__main__':
         start = time.time()
 
     # END OF ONE EPOCH
-    epoch_end = time.time()
-    epoch_time = epoch_end - epoch_start  # In seconds
     epoch_loss /= iters_per_epoch  # Get actual epoch loss
     if epoch_loss < best_epoch_loss:
       best_epoch_loss = epoch_loss  # Save result of the best model only
@@ -400,6 +398,9 @@ if __name__ == '__main__':
     }, save_name)
     print('save model: {}'.format(save_name))
 
+  # END OF ALL EPOCHS
+  epoch_end = time.time()
+  epoch_time = (epoch_end - epoch_start) / args.max_epochs  # Average time per epoch
   if args.use_tfboard:
     logger.close()
   # Save all info to some shared text file
