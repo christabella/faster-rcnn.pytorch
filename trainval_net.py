@@ -412,5 +412,8 @@ if __name__ == '__main__':
     myfile.write('\n')
 
   # Save losses
-  log_file = "logs/" + args.net + "/" + args.dataset + save_name
+  log_dir = "logs/" + args.net + "/" + args.dataset
+  if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+  log_file = os.path.join(log_dir, 'faster_rcnn_{}_{}_{}.txt'.format(args.session, epoch, step))
   log_df.to_csv(log_file, index=False)
