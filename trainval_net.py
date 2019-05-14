@@ -295,10 +295,14 @@ if __name__ == '__main__':
     from tensorboardX import SummaryWriter
     logger = SummaryWriter("logs")
 
+  best_epoch_loss = 1e99
+  best_epoch = None  # The epoch at which we achieved the best epoch loss
   for epoch in range(args.start_epoch, args.max_epochs + 1):
+    epoch_loss = 0
     # setting to train mode
     fasterRCNN.train()
     loss_temp = 0
+    epoch_start = time.time()
     start = time.time()
 
     if epoch % (args.lr_decay_step + 1) == 0:
@@ -320,9 +324,11 @@ if __name__ == '__main__':
       RCNN_loss_cls, RCNN_loss_bbox, \
       rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
+      # Add up all the losses
       loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
            + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
       loss_temp += loss.item()
+      epoch_loss += loss.item()
 
       # backward
       optimizer.zero_grad()
@@ -369,7 +375,14 @@ if __name__ == '__main__':
         loss_temp = 0
         start = time.time()
 
-    
+    # END OF ONE EPOCH
+    epoch_end = time.time()
+    epoch_time = epoch_end - epoch_start  # In seconds
+    epoch_loss /= iters_per_epoch  # Get actual epoch loss
+    if epoch_loss < best_epoch_loss:
+      best_epoch_loss = epoch_loss  # Save result of the best model only
+      best_epoch = epoch
+
     save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
     save_checkpoint({
       'session': args.session,
@@ -383,3 +396,11 @@ if __name__ == '__main__':
 
   if args.use_tfboard:
     logger.close()
+  # Save all info to some shared text file
+  # TODO: save aspect ratio stuff in row_of_info as well
+  row_of_info = [args.session, best_epoch_loss, best_epoch, epoch_time]
+  row_of_info = map(str, row_of_info)  # Make sure it can be joined
+  row_of_info = ','.join(row_of_info)
+  with open("results.txt", "a") as myfile:
+    myfile.write(row_of_info)
+    myfile.write('\n')
