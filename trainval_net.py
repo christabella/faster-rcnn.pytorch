@@ -195,6 +195,7 @@ if __name__ == '__main__':
 
   # Load configs for experimenting
   cfg.TRAIN.RPN_POSITIVE_OVERLAP = args.rpn_positive_overlap
+  cfg.TRAIN.SCALES = (800,)
 
   #torch.backends.cudnn.benchmark = True
   if torch.cuda.is_available() and not args.cuda:
