@@ -407,6 +407,11 @@ if __name__ == '__main__':
       'class_agnostic': args.class_agnostic,
     }, save_name)
     print('save model: {}'.format(save_name))
+    # Delete previous checkpoint because no space Q_Q
+    if epoch > 1:
+      prev_save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch - 1, step))
+      if os.path.exists(prev_save_name):
+        os.remove(prev_save_name)
 
   # END OF ALL EPOCHS
   epoch_end = time.time()
