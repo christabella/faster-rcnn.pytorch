@@ -94,10 +94,12 @@ def parse_args():
                       help='learning rate decay ratio',
                       default=0.1, type=float)
 
-# weird experiment time
-# TRAIN.RPN_POSITIVE_OVERLAP
+# further experiments with various hyperparameters
   parser.add_argument('--rpn_positive_overlap', dest='rpn_positive_overlap',
                       help='rpn_positive_overlap',
+                      default=0.7, type=float)
+  parser.add_argument('--rpn_negative_overlap', dest='rpn_negative_overlap',
+                      help='rpn_negative_overlap',
                       default=0.7, type=float)
 
 # set training session
@@ -194,11 +196,10 @@ if __name__ == '__main__':
   np.random.seed(cfg.RNG_SEED)
 
   # Load configs for experimenting
+  # We can make negative anchor criterion stricter, i.e. less than 0.3
+  # However, this means there will be fewer negatve anchors
+  cfg.TRAIN.RPN_NEGATIVE_OVERLAP = args.rpn_negative_overlap
   cfg.TRAIN.RPN_POSITIVE_OVERLAP = args.rpn_positive_overlap
-  # cfg.TRAIN.SCALES = (800,)
-  # cfg.TRAIN.FG_FRACTION = 0.33
-  # Make negative anchor criterion stricter than <0.3; but this means there will be less
-  cfg.TRAIN.RPN_NEGATIVE_OVERLAP = 0.2
 
   #torch.backends.cudnn.benchmark = True
   if torch.cuda.is_available() and not args.cuda:
@@ -309,9 +310,10 @@ if __name__ == '__main__':
     from tensorboardX import SummaryWriter
     logger = SummaryWriter("logs")
 
+  # Store key metrics at every step in a Pandas DataFrame
   log_df = pd.DataFrame(columns=['epoch', 'loss', 'loss_rpn_cls', 'loss_rpn_box', 'loss_rcnn_cls', 'loss_rcnn_box'])
-  best_epoch_loss = 1e99
   best_epoch = None  # The epoch at which we achieved the best epoch loss
+  best_epoch_loss = 1e99  # The best epoch loss achieved
   epoch_start = time.time()
   for epoch in range(args.start_epoch, args.max_epochs + 1):
     epoch_loss = 0
@@ -379,14 +381,14 @@ if __name__ == '__main__':
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
         epoch_frac = epoch + (step / iters_per_epoch)
         info = {
-          'epoch': epoch_frac,
           'loss': loss_temp,
           'loss_rpn_cls': loss_rpn_cls,
           'loss_rpn_box': loss_rpn_box,
           'loss_rcnn_cls': loss_rcnn_cls,
           'loss_rcnn_box': loss_rcnn_box
         }
-        log_df = log_df.append(info, ignore_index=True)
+        info_extra = {'epoch': epoch_frac}
+        log_df = log_df.append({**info, **info_extra}, ignore_index=True)
 
         if args.use_tfboard:
           logger.add_scalars("logs_s_{}/losses".format(args.session), info, (epoch - 1) * iters_per_epoch + step)
@@ -394,7 +396,7 @@ if __name__ == '__main__':
         loss_temp = 0
         start = time.time()
 
-    # END OF ONE EPOCH
+    # End of one epoch
     epoch_loss /= iters_per_epoch  # Get actual epoch loss
     if epoch_loss < best_epoch_loss:
       best_epoch_loss = epoch_loss  # Save result of the best model only
@@ -410,27 +412,27 @@ if __name__ == '__main__':
       'class_agnostic': args.class_agnostic,
     }, save_name)
     print('save model: {}'.format(save_name))
-    # Delete previous checkpoint because no space Q_Q
+    # Delete the previous checkpoint, if it exists, to save on space
     if epoch > 1:
       prev_save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch - 1, step))
       if os.path.exists(prev_save_name):
         os.remove(prev_save_name)
 
-  # END OF ALL EPOCHS
+  # End of all epochs
   epoch_end = time.time()
   epoch_time = (epoch_end - epoch_start) / args.max_epochs  # Average time per epoch
   if args.use_tfboard:
     logger.close()
-  # Save all info to some shared text file
-  # TODO: save aspect ratio stuff in row_of_info as well
+
+  # Write summary metrics of this run to a shared log file
   row_of_info = [args.session, best_epoch_loss, best_epoch, epoch_time]
-  row_of_info = map(str, row_of_info)  # Make sure it can be joined
+  row_of_info = map(str, row_of_info)  # Ensure values can be `join`-ed
   row_of_info = ','.join(row_of_info)
   with open("results.txt", "a") as myfile:
     myfile.write(row_of_info)
     myfile.write('\n')
 
-  # Save losses
+  # Save losses stored at every step
   log_dir = "logs/" + args.net + "/" + args.dataset
   if not os.path.exists(log_dir):
     os.makedirs(log_dir)
