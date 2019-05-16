@@ -195,7 +195,10 @@ if __name__ == '__main__':
 
   # Load configs for experimenting
   cfg.TRAIN.RPN_POSITIVE_OVERLAP = args.rpn_positive_overlap
-  cfg.TRAIN.SCALES = (800,)
+  # cfg.TRAIN.SCALES = (800,)
+  # cfg.TRAIN.FG_FRACTION = 0.33
+  # Make negative anchor criterion stricter than <0.3; but this means there will be less
+  cfg.TRAIN.RPN_NEGATIVE_OVERLAP = 0.2
 
   #torch.backends.cudnn.benchmark = True
   if torch.cuda.is_available() and not args.cuda:
@@ -407,6 +410,11 @@ if __name__ == '__main__':
       'class_agnostic': args.class_agnostic,
     }, save_name)
     print('save model: {}'.format(save_name))
+    # Delete previous checkpoint because no space Q_Q
+    if epoch > 1:
+      prev_save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch - 1, step))
+      if os.path.exists(prev_save_name):
+        os.remove(prev_save_name)
 
   # END OF ALL EPOCHS
   epoch_end = time.time()
