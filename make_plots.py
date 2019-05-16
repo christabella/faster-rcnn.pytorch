@@ -30,8 +30,9 @@ def parse_args():
     return args
 
 
-def read_and_plot(logs_dir, logs_file, do_plot=False):
+def read_and_plot(net, dataset, logs_file, do_plot=False):
     """Read from logs and plot various Faster R-CNN losses over epochs"""
+    logs_dir = os.path.join("logs", net, dataset)
     file_object = open(os.path.join(logs_dir, logs_file), "r")
     lines = file_object.readlines()
 
@@ -56,14 +57,15 @@ def read_and_plot(logs_dir, logs_file, do_plot=False):
     plt.ylim(0, 5)
     plt.xlabel("Epoch number")
     plt.ylabel("Loss")
-    plt.title(f"Losses with {args.net} backend")
+    plt.title(f"Losses with {net} backend")
     plt.tight_layout()
-    plt.savefig(os.path.join(logs_dir, logs_file[:-4] + '_loss.png'))
+    session_id = logs_file[12:14]
+    plt.savefig(os.path.join("plots",
+                             f'{session_id}_{net}_loss.png'))
     if do_plot:
         plt.show()
 
 
 if __name__ == '__main__':
     args = parse_args()
-    logs_dir = os.path.join("logs", args.net, args.dataset)
-    read_and_plot(logs_dir, args.logs_file)
+    read_and_plot(args.net, args.dataset, args.logs_file)
