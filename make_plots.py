@@ -5,8 +5,10 @@ Example usage: python make_plots.py --net vgg16 \
 
 import argparse
 import matplotlib.pyplot as plt
+import matplotlib.style as style
 import numpy as np
 import os
+style.use('ggplot')
 
 
 def parse_args():
@@ -43,17 +45,20 @@ def read_and_plot(logs_dir, logs_file, do_plot=False):
 
     results = np.array(results)
     epochs = results[:, 0]
-    labels = ("Total Loss", "Loss on RPN box regressor",
-              "Loss on RPN classifier", "Loss on RCNN classfier",
+    losses = results[:, 1:]
+    labels = ("Total loss", "Loss on RPN box regressor",
+              "Loss on RPN classifier", "Loss on RCNN classifier",
               "Loss on RCNN box regressor")
 
     # Plot losses and save image to same location as logs file
-    line_objects = plt.plot(epochs, results.transpose())
+    line_objects = plt.plot(epochs, losses, )
     plt.legend(line_objects, labels)
     plt.ylim(0, 5)
     plt.xlabel("Epoch number")
     plt.ylabel("Loss")
-    plt.savefig(os.path.join(logs_dir, 'loss_plot.png'))
+    plt.title(f"Losses with {args.net} backend")
+    plt.tight_layout()
+    plt.savefig(os.path.join(logs_dir, logs_file[:-4] + '_loss.png'))
     if do_plot:
         plt.show()
 
