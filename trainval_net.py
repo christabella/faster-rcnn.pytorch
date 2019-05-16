@@ -196,7 +196,9 @@ if __name__ == '__main__':
   # Load configs for experimenting
   cfg.TRAIN.RPN_POSITIVE_OVERLAP = args.rpn_positive_overlap
   # cfg.TRAIN.SCALES = (800,)
-  cfg.TRAIN.FG_FRACTION = 0.33
+  # cfg.TRAIN.FG_FRACTION = 0.33
+  # Make negative anchor criterion stricter than <0.3; but this means there will be less
+  cfg.TRAIN.RPN_NEGATIVE_OVERLAP = 0.2
 
   #torch.backends.cudnn.benchmark = True
   if torch.cuda.is_available() and not args.cuda:
