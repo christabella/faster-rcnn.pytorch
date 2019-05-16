@@ -1,35 +1,64 @@
+"""
+Example usage: python make_plots.py --net vgg16 \
+               --logs_file 'faster_rcnn_2_10_1251.txt'
+"""
+
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 
-def read_and_plot(image_name_file_name,
-                  file_path = "res101/pascal_voc/",
-                  file_name="faster_rcnn_2_10_1251.txt"):
-    file_object = open(file_path+file_name, "r")
+def parse_args():
+    """Parse input arguments"""
+    parser = argparse.ArgumentParser(
+        description='Plot Faster R-CNN losses from logs')
+
+    parser.add_argument('--net', dest='net',
+                        help='backbone network',
+                        choices=['vgg16', 'res101'],
+                        default='vgg16', type=str)
+    parser.add_argument('--dataset', dest='dataset',
+                        help='training dataset',
+                        default='pascal_voc', type=str)
+    parser.add_argument('--logs_file', dest='logs_file',
+                        help='name of file to read logs from',
+                        default='faster_rcnn_2_10_1251.txt', type=str)
+    args = parser.parse_args()
+    return args
+
+
+def read_and_plot(logs_dir, logs_file, do_plot=False):
+    """Read from logs and plot various Faster R-CNN losses over epochs"""
+    file_object = open(os.path.join(logs_dir, logs_file), "r")
     lines = file_object.readlines()
 
+    # Read from logs
     results = []
     for l in lines[1:]:
         line = l.split(",")
-        line[-1] = line[-1].replace("\n","")
+        line[-1] = line[-1].replace("\n", "")
         line = [float(l_) for l_ in line]
         results.append(line)
-    results = np.array(results)
 
-    plt.plot(results[:, 0], results[:, 1], label="Total Loss")
-    plt.plot(results[:, 0], results[:, 2], label="Loss on RPN box regressor")
-    plt.plot(results[:, 0], results[:, 3], label="Loss on RPN classifier")
-    plt.plot(results[:, 0], results[:, 4], label="Loss on RCNN classfier")
-    plt.plot(results[:, 0], results[:, 5], label="Loss on RCNN box regressor")
-    plt.ylim(0,5)
-    # epoch,loss,loss_rpn_cls,loss_rpn_box,loss_rcnn_cls,loss_rcnn_box
+    results = np.array(results)
+    epochs = results[:, 0]
+    labels = ("Total Loss", "Loss on RPN box regressor",
+              "Loss on RPN classifier", "Loss on RCNN classfier",
+              "Loss on RCNN box regressor")
+
+    # Plot losses and save image to same location as logs file
+    line_objects = plt.plot(epochs, results.transpose())
+    plt.legend(line_objects, labels)
+    plt.ylim(0, 5)
     plt.xlabel("Epoch number")
     plt.ylabel("Loss")
-    plt.legend()
-    plt.savefig(image_name_file_name)
-    #plt.show()
+    plt.savefig(os.path.join(logs_dir, 'loss_plot.png'))
+    if do_plot:
+        plt.show()
 
 
-read_and_plot(image_name_file_name='res101_frcnn_loss.png',
-              file_path="res101/pascal_voc/",
-              file_name="faster_rcnn_2_10_1251.txt")
+if __name__ == '__main__':
+    args = parse_args()
+    logs_dir = os.path.join("logs", args.net, args.dataset)
+    read_and_plot(logs_dir, args.logs_file)
